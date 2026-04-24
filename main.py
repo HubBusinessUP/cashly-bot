@@ -89,10 +89,12 @@ def main():
                     verifica(chat_id, telegram_id, param, from_data)
                 else:
                     send(chat_id,
-                        "Ciao! Sono il bot di *Cashly*.\n\n"
-                        "Per verificare il tuo account vai su [cashly-two-plum.vercel.app/dashboard]"
-                        f"({DASHBOARD_URL}) e clicca *Verifica con Telegram*.",
-                        parse_mode="Markdown"
+                        f"Ciao! Sei gia registrato su Cashly.\n\n"
+                        f"Per completare la verifica:\n"
+                        f"1. Vai su {DASHBOARD_URL}\n"
+                        f"2. Copia il codice personale (es. CASHLY-XXXXXX)\n"
+                        f"3. Clicca il pulsante 'Verifica con Telegram' dalla dashboard.",
+                        parse_mode=None,
                     )
         except Exception as e:
             print(f"Errore: {e}")
