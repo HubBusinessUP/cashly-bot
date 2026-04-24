@@ -6,7 +6,7 @@ import requests
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-DASHBOARD_URL = "https://cashly-two-plum.vercel.app/dashboard"
+DASHBOARD_URL = "https://cashly-rho.vercel.app/dashboard"
 
 API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 HEADERS = {
