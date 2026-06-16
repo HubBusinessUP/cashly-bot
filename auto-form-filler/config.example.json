@@ -1,0 +1,33 @@
+{
+  "data": {
+    "nome": "Mario",
+    "cognome": "Rossi",
+    "nome_completo": "Mario Rossi",
+    "email": "mario.rossi@example.com",
+    "telefono": "+39 333 1234567",
+    "indirizzo": "Via Roma 1",
+    "citta": "Milano",
+    "cap": "20100",
+    "provincia": "MI",
+    "paese": "Italia",
+    "data_nascita": "1990-01-15",
+    "codice_fiscale": "RSSMRA90A15F205X",
+    "azienda": "Acme Srl",
+    "sito_web": "https://example.com",
+    "password": "CambiaMi123!"
+  },
+  "files": {
+    "documento_identita": {
+      "path": "/percorso/assoluto/carta_identita.pdf",
+      "descrizione": "Carta d'identita' o documento di riconoscimento"
+    },
+    "curriculum": {
+      "path": "/percorso/assoluto/cv.pdf",
+      "descrizione": "Curriculum vitae"
+    },
+    "foto": {
+      "path": "/percorso/assoluto/foto.jpg",
+      "descrizione": "Foto profilo / tessera"
+    }
+  }
+}
