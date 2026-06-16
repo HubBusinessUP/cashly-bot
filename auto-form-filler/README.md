@@ -28,24 +28,48 @@ export ANTHROPIC_API_KEY="la-tua-chiave"
 
 ## Configurazione
 
-Copia il modello e mettici i tuoi dati:
+Due modi per creare `config.json`:
+
+**A) Con il form visuale (consigliato)** — niente JSON a mano:
 
 ```bash
-cp config.example.json config.json
+python config_editor.py
 ```
 
-- `data`: campi liberi (nome, email, telefono, ...). Aggiungi le chiavi che ti servono: Claude le
-  abbina da solo alle etichette del form.
+Si apre una pagina nel browser: compili i tuoi dati e i file da caricare, premi **Salva** e
+viene scritto `config.json`. Riapri lo stesso comando per modificarli.
+
+**B) A mano**, partendo dal modello:
+
+```bash
+cp config.example.json config.json   # poi modifichi il file
+```
+
+In entrambi i casi:
+- `data`: campi liberi (nome, email, telefono, ...). Aggiungi le chiavi che ti servono: vengono
+  abbinate da sole alle etichette del form.
 - `files`: per ogni file, il **percorso assoluto** sul tuo PC e una breve `descrizione` (serve a
-  Claude per capire dove va caricato, es. "Carta d'identità").
+  capire dove va caricato, es. "Carta d'identità").
 
 > ⚠️ `config.json` contiene dati personali: è già escluso da Git (`.gitignore`). Non condividerlo.
+
+## Due modalità di riconoscimento dei campi
+
+- **Con AI (default)**: Claude legge le etichette e capisce cosa scrivere. Più robusto sui form
+  strani. Serve `ANTHROPIC_API_KEY`.
+- **Senza AI (`--no-ai`)**: abbina i campi per **parole chiave** (nome, email, telefono/numero,
+  città, ...). **Non serve nessuna chiave API**, è gratis e istantaneo. Non spunta da solo
+  checkbox/scelte ambigue (le lascia a te), ma compila i campi di testo, i menu a tendina e i file
+  riconosciuti.
 
 ## Uso
 
 ```bash
 # Compila e invia (browser visibile, lo guardi mentre lavora)
 python form_filler.py --url "https://sito.it/iscrizione"
+
+# Senza AI: riconosce i campi per parole chiave, nessuna API key
+python form_filler.py --url "https://sito.it/iscrizione" --no-ai
 
 # Compila ma NON invia: utile per controllare prima
 python form_filler.py --url "https://sito.it/iscrizione" --no-submit
@@ -63,7 +87,8 @@ python form_filler.py --url "..." --model claude-opus-4-8
 |----------------|----------------------------------------------------------|----------------|
 | `--url`        | Link del form (obbligatorio)                             | —              |
 | `--config`     | File JSON con i dati                                      | `config.json`  |
-| `--model`      | Modello Claude                                           | `claude-sonnet-4-6` |
+| `--no-ai`      | Riconosce i campi per parole chiave, senza AI            | off (usa l'AI) |
+| `--model`      | Modello Claude (solo modalità AI)                       | `claude-sonnet-4-6` |
 | `--no-submit`  | Compila ma non clicca il pulsante di invio               | off            |
 | `--headless`   | Browser invisibile                                       | off (visibile) |
 | `--max-steps`  | Numero massimo di pagine/step                            | `10`           |

@@ -12,11 +12,12 @@ Vedi il README per i dettagli.
 import argparse
 import json
 import os
+import re
 import sys
 import time
+import unicodedata
 from pathlib import Path
 
-import anthropic
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
 
 
@@ -170,7 +171,7 @@ SYSTEM_PROMPT = (
 
 
 def decide_actions(client, model, extracted, config):
-    """Chiede a Claude come compilare i campi della pagina corrente."""
+    """Chiede a Claude come compilare i campi della pagina corrente (modalita' AI)."""
     files_desc = {
         key: meta.get("descrizione", meta.get("description", ""))
         for key, meta in config.get("files", {}).items()
@@ -198,6 +199,158 @@ def decide_actions(client, model, extracted, config):
         if block.type == "tool_use" and block.name == "compila_form":
             return block.input
     raise RuntimeError("Claude non ha restituito una decisione valida.")
+
+
+# ---------------------------------------------------------------------------
+# Decisione a regole (senza AI, --no-ai)
+# ---------------------------------------------------------------------------
+
+# Per ogni chiave di config["data"], le parole/frasi che possono comparire
+# nell'etichetta del campo. Le frasi (con spazio) sono cercate come testo
+# intero; le parole singole come token, per non confondere es. "nome" dentro
+# "cognome".
+RULE_SYNONYMS = {
+    "nome": ["nome", "first name", "firstname", "given name"],
+    "cognome": ["cognome", "last name", "lastname", "surname", "family name"],
+    "nome_completo": ["nome completo", "nome e cognome", "full name", "fullname", "nominativo"],
+    "email": ["email", "e mail", "mail", "posta elettronica", "indirizzo email"],
+    "telefono": ["telefono", "phone", "tel", "cellulare", "mobile", "numero di telefono",
+                 "recapito telefonico", "numero"],
+    "indirizzo": ["indirizzo", "indirizzo di residenza", "address", "via"],
+    "citta": ["citta", "city", "comune", "localita"],
+    "cap": ["cap", "zip", "postal code", "codice postale"],
+    "provincia": ["provincia", "province", "stato", "state"],
+    "paese": ["paese", "country", "nazione", "nazionalita"],
+    "data_nascita": ["data di nascita", "data nascita", "birth", "date of birth", "dob",
+                     "nato il", "compleanno"],
+    "codice_fiscale": ["codice fiscale", "cf", "fiscal code", "tax code", "partita iva", "piva"],
+    "azienda": ["azienda", "company", "societa", "ditta", "organizzazione", "ragione sociale"],
+    "sito_web": ["sito web", "sito", "website", "web site", "url"],
+    "password": ["password", "pwd", "parola d ordine"],
+}
+
+# Testi tipici dei pulsanti per proseguire/inviare.
+PROCEED_KEYWORDS = ["avanti", "continua", "prosegui", "procedi", "next", "invia", "submit",
+                    "registrati", "iscriviti", "iscrizione", "conferma", "send", "salva",
+                    "completa", "vai", "registrazione"]
+
+
+def _norm(s):
+    """Minuscolo, senza accenti, solo lettere/numeri separati da spazi."""
+    s = unicodedata.normalize("NFKD", s or "")
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = re.sub(r"[^a-z0-9]+", " ", s.lower())
+    return " ".join(s.split())
+
+
+def _field_text(field):
+    return _norm(" ".join([field.get("label", ""), field.get("name", ""),
+                           field.get("id", ""), field.get("placeholder", "")]))
+
+
+def _match_data_key(field, data):
+    """Trova la chiave di config piu' adatta al campo; None se nessuna."""
+    full = _field_text(field)
+    tokens = set(full.split())
+    best_key, best_score = None, 0
+    for key in data:
+        candidates = list(RULE_SYNONYMS.get(key, []))
+        candidates += [key, key.replace("_", " ")]
+        for kw in candidates:
+            nkw = _norm(kw)
+            if not nkw:
+                continue
+            if " " in nkw:                      # frase: match su testo intero
+                hit = nkw in full
+            else:                               # parola: match su token intero
+                hit = nkw in tokens
+            if hit and len(nkw) > best_score:   # preferisci il match piu' specifico
+                best_key, best_score = key, len(nkw)
+    return best_key
+
+
+def _match_file_key(field, files):
+    """Trova il file piu' adatto a un campo di upload; None se nessuno."""
+    tokens = set(_field_text(field).split())
+    best_key, best_score = None, 0
+    for key, meta in files.items():
+        words = _norm(" ".join([key, key.replace("_", " "),
+                                meta.get("descrizione", meta.get("description", ""))])).split()
+        for w in words:
+            if len(w) >= 3 and w in tokens and len(w) > best_score:
+                best_key, best_score = key, len(w)
+    return best_key
+
+
+def _match_option(options, value):
+    """Sceglie l'opzione di un select che combacia col valore dato."""
+    nv = _norm(value)
+    if not nv:
+        return None
+    for o in options:                           # match esatto
+        if _norm(o.get("value", "")) == nv or _norm(o.get("text", "")) == nv:
+            return o.get("value") or o.get("text")
+    for o in options:                           # match parziale sul testo
+        ot = _norm(o.get("text", ""))
+        if ot and (nv in ot or ot in nv):
+            return o.get("value") or o.get("text")
+    return None
+
+
+def _find_proceed(buttons):
+    for b in buttons:
+        words = _norm(b.get("text", "")).split()
+        if any(kw in words for kw in PROCEED_KEYWORDS):
+            return b["ff_id"]
+    for b in buttons:                           # fallback: pulsante di tipo submit
+        if b.get("type") == "submit":
+            return b["ff_id"]
+    return None
+
+
+def rule_based_decision(extracted, config):
+    """Decide come compilare i campi per parole chiave, senza usare l'AI."""
+    data = config.get("data", {})
+    files = config.get("files", {})
+    actions, notes = [], []
+
+    for f in extracted["fields"]:
+        ftype = f.get("type")
+        ff_id = f["ff_id"]
+
+        if ftype == "file":
+            key = _match_file_key(f, files)
+            actions.append({"ff_id": ff_id, "action": "upload", "value": key} if key
+                           else {"ff_id": ff_id, "action": "skip"})
+            continue
+
+        if ftype in ("checkbox", "radio"):
+            # Senza AI non spuntiamo opzioni: troppo ambiguo (privacy, scelte, ecc.).
+            actions.append({"ff_id": ff_id, "action": "skip"})
+            continue
+
+        key = _match_data_key(f, data)
+        if key is None:
+            actions.append({"ff_id": ff_id, "action": "skip"})
+            if f.get("required"):
+                notes.append(f"campo obbligatorio non riconosciuto: "
+                             f"'{f.get('label') or f.get('name') or ff_id}'")
+            continue
+
+        value = str(data.get(key, ""))
+        if f.get("tag") == "select":
+            opt = _match_option(f.get("options", []), value)
+            actions.append({"ff_id": ff_id, "action": "select", "value": opt} if opt is not None
+                           else {"ff_id": ff_id, "action": "skip"})
+        else:
+            actions.append({"ff_id": ff_id, "action": "fill", "value": value})
+
+    return {
+        "actions": actions,
+        "proceed_button_ff_id": _find_proceed(extracted["buttons"]),
+        "form_complete": False,
+        "notes": "; ".join(notes),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -277,17 +430,22 @@ def run(args):
         sys.exit(f"❌ Config non trovata: {config_path}. Copia config.example.json in config.json.")
     config = json.loads(config_path.read_text(encoding="utf-8"))
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        sys.exit("❌ Manca ANTHROPIC_API_KEY. Esegui: export ANTHROPIC_API_KEY=...")
-
     # Avviso preventivo su file mancanti
     for key, meta in config.get("files", {}).items():
         p = meta.get("path", "")
         if p and not Path(p).expanduser().is_file():
             print(f"⚠ Attenzione: il file '{key}' non esiste: {p}")
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = None
+    if args.no_ai:
+        print("🔧 Modalita' a regole (senza AI): riconoscimento campi per parole chiave.")
+    else:
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            sys.exit("❌ Manca ANTHROPIC_API_KEY. Usa --no-ai per la modalita' senza AI, "
+                     "oppure: export ANTHROPIC_API_KEY=...")
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
 
     screenshots_dir = Path("screenshots")
     screenshots_dir.mkdir(exist_ok=True)
@@ -308,7 +466,10 @@ def run(args):
                 print("  Nessun campo o pulsante: form probabilmente concluso.")
                 break
 
-            decision = decide_actions(client, args.model, extracted, config)
+            if args.no_ai:
+                decision = rule_based_decision(extracted, config)
+            else:
+                decision = decide_actions(client, args.model, extracted, config)
             summary, proceed, pid = apply_actions(page, decision, config, args.no_submit)
             print_summary(step, summary, decision)
 
@@ -354,6 +515,8 @@ def main():
     parser.add_argument("--url", required=True, help="Link del form da compilare.")
     parser.add_argument("--config", default="config.json", help="File JSON con i dati (default: config.json).")
     parser.add_argument("--model", default="claude-sonnet-4-6", help="Modello Claude da usare.")
+    parser.add_argument("--no-ai", action="store_true",
+                        help="Riconosce i campi per parole chiave, senza AI (nessuna API key).")
     parser.add_argument("--no-submit", action="store_true", help="Compila ma non preme il pulsante di invio.")
     parser.add_argument("--headless", action="store_true", help="Browser invisibile (default: visibile).")
     parser.add_argument("--max-steps", type=int, default=10, help="Numero massimo di pagine/step.")
