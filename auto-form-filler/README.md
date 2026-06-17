@@ -58,9 +58,10 @@ In entrambi i casi:
 - **Con AI (default)**: Claude legge le etichette e capisce cosa scrivere. Più robusto sui form
   strani. Serve `ANTHROPIC_API_KEY`.
 - **Senza AI (`--no-ai`)**: abbina i campi per **parole chiave** (nome, email, telefono/numero,
-  città, ...). **Non serve nessuna chiave API**, è gratis e istantaneo. Non spunta da solo
-  checkbox/scelte ambigue (le lascia a te), ma compila i campi di testo, i menu a tendina e i file
-  riconosciuti.
+  città, ...). **Non serve nessuna chiave API**, è gratis e istantaneo. Compila i campi di testo,
+  i menu a tendina e i file riconosciuti, e **spunta da solo i consensi obbligatori**
+  (privacy, termini e condizioni, trattamento dati). Lascia invece a te le **checkbox di
+  marketing** (newsletter, promozioni, profilazione) e le scelte ambigue (radio).
 
 ## Uso
 

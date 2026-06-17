@@ -234,6 +234,18 @@ PROCEED_KEYWORDS = ["avanti", "continua", "prosegui", "procedi", "next", "invia"
                     "registrati", "iscriviti", "iscrizione", "conferma", "send", "salva",
                     "completa", "vai", "registrazione"]
 
+# Checkbox di consenso OBBLIGATORIE: si spuntano da sole (servono per proseguire).
+CONSENT_KEYWORDS = ["privacy", "termini", "condizioni", "regolamento", "informativa",
+                    "accetto", "accettazione", "acconsento", "autorizzo", "dichiaro",
+                    "consenso", "gdpr", "terms", "conditions", "agree", "accept",
+                    "presa visione", "trattamento dei dati", "termini e condizioni",
+                    "termini di servizio", "ho letto"]
+
+# Checkbox FACOLTATIVE (marketing): NON si spuntano, le lascia all'utente.
+MARKETING_KEYWORDS = ["newsletter", "marketing", "promozioni", "promozionali", "offerte",
+                      "commerciali", "comunicazioni commerciali", "profilazione",
+                      "terze parti", "pubblicita", "novita", "sconti", "promozionale"]
+
 
 def _norm(s):
     """Minuscolo, senza accenti, solo lettere/numeri separati da spazi."""
@@ -297,6 +309,27 @@ def _match_option(options, value):
     return None
 
 
+def _has_keyword(field, keywords):
+    full = _field_text(field)
+    tokens = set(full.split())
+    for kw in keywords:
+        nkw = _norm(kw)
+        if not nkw:
+            continue
+        if (" " in nkw and nkw in full) or (" " not in nkw and nkw in tokens):
+            return True
+    return False
+
+
+def _checkbox_action(field):
+    """Decide se spuntare una checkbox: consensi obbligatori si', marketing no."""
+    consent = _has_keyword(field, CONSENT_KEYWORDS)
+    marketing = _has_keyword(field, MARKETING_KEYWORDS)
+    if consent and (not marketing or field.get("required")):
+        return "check"
+    return "skip"
+
+
 def _find_proceed(buttons):
     for b in buttons:
         words = _norm(b.get("text", "")).split()
@@ -324,8 +357,16 @@ def rule_based_decision(extracted, config):
                            else {"ff_id": ff_id, "action": "skip"})
             continue
 
-        if ftype in ("checkbox", "radio"):
-            # Senza AI non spuntiamo opzioni: troppo ambiguo (privacy, scelte, ecc.).
+        if ftype == "checkbox":
+            # Spunta i consensi obbligatori (privacy/termini); lascia il marketing.
+            act = _checkbox_action(f)
+            actions.append({"ff_id": ff_id, "action": act})
+            if act == "check":
+                notes.append(f"spuntato consenso: '{f.get('label') or f.get('name') or ff_id}'")
+            continue
+
+        if ftype == "radio":
+            # I radio sono scelte tra opzioni: troppo ambiguo senza AI.
             actions.append({"ff_id": ff_id, "action": "skip"})
             continue
 
