@@ -23,8 +23,11 @@ Servono Python 3.10+ e una chiave API Anthropic.
 cd auto-form-filler
 pip install -r requirements.txt
 playwright install chromium          # scarica il browser
-export ANTHROPIC_API_KEY="la-tua-chiave"
+export ANTHROPIC_API_KEY="la-tua-chiave"   # solo per la modalità AI
 ```
+
+> Hai già Chrome/Chromium installato e non vuoi scaricare nulla? Passa il percorso con
+> `--browser-path /percorso/al/chrome` (in ambienti tipo container aggiungi `--no-sandbox`).
 
 ## Configurazione
 
@@ -94,6 +97,8 @@ python form_filler.py --url "..." --model claude-opus-4-8
 | `--headless`   | Browser invisibile                                       | off (visibile) |
 | `--max-steps`  | Numero massimo di pagine/step                            | `10`           |
 | `--step-pause` | Pausa prima di ogni avanzamento                          | off            |
+| `--browser-path` | Usa un Chrome/Chromium già installato                  | scarica il suo |
+| `--no-sandbox` | Avvia Chromium con `--no-sandbox` (container/root)      | off            |
 
 ## Limiti
 

@@ -492,7 +492,13 @@ def run(args):
     screenshots_dir.mkdir(exist_ok=True)
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=args.headless)
+        launch_kwargs = {"headless": args.headless}
+        exe = args.browser_path or os.environ.get("FORM_FILLER_CHROMIUM")
+        if exe:
+            launch_kwargs["executable_path"] = exe
+        if args.no_sandbox:
+            launch_kwargs["args"] = ["--no-sandbox"]
+        browser = pw.chromium.launch(**launch_kwargs)
         page = browser.new_page()
         print(f"🌐 Apro: {args.url}")
         page.goto(args.url, wait_until="domcontentloaded")
@@ -562,6 +568,10 @@ def main():
     parser.add_argument("--headless", action="store_true", help="Browser invisibile (default: visibile).")
     parser.add_argument("--max-steps", type=int, default=10, help="Numero massimo di pagine/step.")
     parser.add_argument("--step-pause", action="store_true", help="Pausa (Invio) prima di ogni avanzamento.")
+    parser.add_argument("--browser-path", default=None,
+                        help="Percorso a un Chrome/Chromium gia' installato (invece di scaricarlo).")
+    parser.add_argument("--no-sandbox", action="store_true",
+                        help="Avvia Chromium con --no-sandbox (utile in container/come root).")
     run(parser.parse_args())
 
 
