@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross-Broker Hedge NOC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Cross-Broker Hedge NOC — preview standalone (zero dipendenze).
+   Il codice sorgente modulare in React/Tailwind è in ../src.
+   Tema dark unico e dichiarato: replica una console di sala
+   operativa, quindi ogni colore è dipinto esplicitamente.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --void:#04070B; --panel:#0A121A; --panel-hi:#0E1926; --line:#17242F;
+  --ink:#C7D7E5; --ink-mute:#5F7488;
+  --stable:#2EE6A8; --flow:#38BDF8; --warn:#F5A524; --critical:#FF4D6D; --core:#8B7CF6;
+  --label:"IBM Plex Sans Condensed",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--void);color:var(--ink);font-family:var(--mono);
+  background-image:linear-gradient(rgba(23,36,47,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(23,36,47,.35) 1px,transparent 1px);
+  background-size:44px 44px}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:1px solid var(--flow);outline-offset:1px}
+.lbl{font-family:var(--label);text-transform:uppercase;letter-spacing:.16em;font-size:10px;color:var(--ink-mute)}
+.num{font-variant-numeric:tabular-nums}
+
+/* griglia NOC ------------------------------------------------ */
+.noc{display:grid;gap:12px;padding:12px;max-width:1680px;margin:0 auto;
+  grid-template-columns:repeat(12,1fr);
+  grid-template-rows:auto minmax(320px,1fr) minmax(230px,.92fr) auto;
+  min-height:100vh}
+.g-rail{grid-column:1/-1}
+.g-topology{grid-column:1/9;grid-row:2}
+.g-stream{grid-column:9/13;grid-row:2/4}
+.g-metrics{grid-column:1/9;grid-row:3;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;min-height:0}
+.g-control{grid-column:1/-1;grid-row:4}
+@media (max-width:1180px){
+  .noc{grid-template-columns:1fr;grid-template-rows:none;height:auto}
+  .g-rail,.g-topology,.g-stream,.g-metrics,.g-control{grid-column:1/-1;grid-row:auto}
+  .g-metrics{grid-template-columns:1fr}
+  .g-stream{min-height:420px}
+}
+
+/* pannelli --------------------------------------------------- */
+.panel{display:flex;flex-direction:column;min-height:0;background:var(--panel);
+  border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 18px 40px -30px #000}
+.panel>header{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.panel>header h2{margin:0;font-family:var(--label);font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.18em;color:rgba(199,215,229,.85)}
+.panel>header .meta{margin-left:auto;font-size:10px;color:var(--ink-mute)}
+.tick{width:1px;height:12px;background:var(--flow)}
+.tick.core{background:var(--core)} .tick.stable{background:var(--stable)}
+.tick.warn{background:var(--warn)} .tick.critical{background:var(--critical)}
+.body{flex:1 1 auto;min-height:0}
+.pad{padding:14px}
+
+/* status rail ------------------------------------------------ */
+.rail{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.rail .brand{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase}
+.rail .stats{margin-left:auto;display:flex;gap:20px;font-size:10px;color:var(--ink-mute)}
+.dot{position:relative;width:6px;height:6px;border-radius:50%;background:var(--stable);display:inline-block}
+.dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite}
+@keyframes ping{75%,100%{transform:scale(2.6);opacity:0}}
+
+/* topologia -------------------------------------------------- */
+.map{position:relative;height:100%;min-height:340px}
+.map svg{width:100%;height:calc(100% - 26px);display:block}
+.svg-lbl{font-family:var(--label);letter-spacing:.12em;text-transform:uppercase}
+.svg-mono{font-family:var(--mono)}
+.legend{position:absolute;left:16px;bottom:12px;display:flex;gap:16px;pointer-events:none}
+.legend span{display:flex;align-items:center;gap:6px;font-family:var(--label);font-size:9px;
+  text-transform:uppercase;letter-spacing:.14em;color:var(--ink-mute)}
+.legend i{width:6px;height:6px;border-radius:50%;display:inline-block}
+
+/* metriche --------------------------------------------------- */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.hero .val{font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+.hero .val small{font-size:11px;color:var(--ink-mute);margin-left:4px}
+.expo{display:flex;align-items:center;gap:10px;margin-top:8px}
+.expo .k{width:52px;font-family:var(--label);font-size:10px;letter-spacing:.14em;color:var(--ink-mute)}
+.expo .track{position:relative;flex:1;height:6px;background:var(--panel-hi)}
+.expo .track i{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line)}
+.expo .track b{position:absolute;top:0;bottom:0}
+.expo .v{width:56px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums}
+.matrix{display:grid;grid-template-columns:88px repeat(3,1fr);gap:1px;background:var(--line);text-align:center}
+.matrix>div{background:var(--panel);padding:9px 4px}
+.matrix .head{font-family:var(--label);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute)}
+.matrix .leg{display:flex;align-items:center;justify-content:flex-start;padding-left:9px;font-family:var(--label);
+  font-size:10px;letter-spacing:.1em;color:var(--ink)}
+.matrix .cell{font-size:15px;font-variant-numeric:tabular-nums}
+.matrix .cell sup{font-size:8px;margin-left:3px}
+.foot{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--label);font-size:9px;
+  text-transform:uppercase;letter-spacing:.14em;color:var(--ink-mute)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin-top:10px}
+.trio>div{background:var(--panel);padding:7px 8px}
+.trio .lbl{letter-spacing:.1em}
+.trio b{display:block;margin-top:3px;font-size:13px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* stream ----------------------------------------------------- */
+.filters{display:flex;align-items:center;gap:4px;padding:8px 10px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.filters button{padding:4px 8px;font-family:var(--label);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
+.filters button:hover{color:var(--ink)}
+.filters button[aria-pressed="true"]{background:rgba(56,189,248,.14);color:var(--flow)}
+.filters .tail{margin-left:auto;font-size:9px;color:var(--ink-mute)}
+.log{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0;padding:0;list-style:none;font-size:11px;line-height:1.55}
+.log li{display:flex;gap:8px;padding:6px 10px;border-bottom:1px solid rgba(23,36,47,.6)}
+.log li:hover{background:var(--panel-hi)}
+.log .sev{flex:0 0 auto;width:2px;margin-top:3px;height:12px}
+.log time{flex:0 0 auto;color:var(--ink-mute);font-variant-numeric:tabular-nums}
+.log .tag{flex:0 0 auto}
+.log .msg{color:rgba(199,215,229,.85)}
+.log::-webkit-scrollbar{width:8px}
+.log::-webkit-scrollbar-thumb{background:var(--line)}
+
+/* master control --------------------------------------------- */
+.cmds{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px}
+@media (max-width:720px){.cmds{grid-template-columns:1fr}}
+.cmd{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:14px;
+  min-height:76px;padding:12px 14px;text-align:left;border:1px solid var(--line);background:var(--panel-hi)}
+.cmd .t{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;position:relative}
+.cmd .h{font-size:10px;color:var(--ink-mute);position:relative;display:flex;align-items:center;gap:8px}
+.cmd.danger{border-color:rgba(255,77,109,.5);background:rgba(255,77,109,.08)}
+.cmd.danger:hover{background:rgba(255,77,109,.16)}
+.cmd.danger .t{color:var(--critical)}
+.cmd.danger .h{color:rgba(255,77,109,.75)}
+.cmd.danger .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,77,109,.28)}
+.cmd.flow:hover{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.4)}
+.cmd.core:hover{background:rgba(139,124,246,.1);border-color:rgba(139,124,246,.4)}
+.switch{display:inline-flex;align-items:center;width:34px;height:15px;padding:1px;border:1px solid var(--line);background:var(--void)}
+.switch b{width:14px;height:11px;background:var(--stable);transition:transform .18s ease}
+.switch.manual b{transform:translateX(15px);background:var(--warn)}
+@media (prefers-reduced-motion:reduce){
+  .dot::after{animation:none} .switch b{transition:none} circle[data-flow]{display:none}
+}
+</style>
+</head>
+<body>
+<main class="noc">
+  <!-- ── STATUS RAIL ─────────────────────────────────────────── -->
+  <header class="panel g-rail" style="flex-direction:row;align-items:center;padding:10px 14px">
+    <div class="rail" style="width:100%">
+      <span style="display:flex;align-items:center;gap:10px">
+        <span class="dot" id="rail-dot"></span>
+        <span class="brand">Hedge NOC</span>
+        <span style="font-size:10px;color:var(--ink-mute)">cross-broker · A ⇄ B</span>
+      </span>
+      <span class="lbl" id="rail-state" style="font-size:10px;letter-spacing:.18em;color:var(--stable)">all systems nominal</span>
+      <span class="stats">
+        <span>ROUTING <b id="rail-routing" style="font-weight:400;color:var(--stable)">AUTO</b></span>
+        <span>QUEUE <b id="rail-queue" style="font-weight:400;color:var(--ink)">3</b></span>
+        <span>UPTIME <b id="rail-uptime" class="num" style="font-weight:400;color:var(--ink)">00:00:00</b></span>
+      </span>
+    </div>
+  </header>
+
+  <!-- ── TOPOLOGY NETWORK MAP ────────────────────────────────── -->
+  <section class="panel g-topology">
+    <header><span class="tick core"></span><h2>Topology · Hedge Network</h2><span class="meta" id="topo-meta">3 NODES · 2 LINKS</span></header>
+    <div class="body map">
+      <svg viewBox="0 46 990 288" preserveAspectRatio="xMidYMid meet" role="img"
+           aria-label="Mappa di rete: Broker A ECN, motore di hedging, Broker B institutional LP">
+        <defs>
+          <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+            <path d="M30 0H0V30" fill="none" stroke="#0F1A24" stroke-width="1"/>
+          </pattern>
+          <radialGradient id="coreGlow">
+            <stop offset="0%" stop-color="#8B7CF6" stop-opacity=".26"/>
+            <stop offset="100%" stop-color="#8B7CF6" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="990" height="380" fill="url(#grid)"/>
+
+        <path id="edgeA" d="M248 190 C 320 190, 340 190, 392 190" fill="none" stroke="#2EE6A8" stroke-opacity=".4" stroke-width="1.5"/>
+        <path id="edgeB" d="M598 190 C 650 190, 670 190, 742 190" fill="none" stroke="#2EE6A8" stroke-opacity=".4" stroke-width="1.5"/>
+
+        <circle data-flow r="2.5" fill="#2EE6A8" id="pA1"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#edgeA"/></animateMotion></circle>
+        <circle data-flow r="2.5" fill="#2EE6A8" id="pA2"><animateMotion dur="1.6s" begin="0.55s" repeatCount="indefinite"><mpath href="#edgeA"/></animateMotion></circle>
+        <circle data-flow r="2.5" fill="#2EE6A8" id="pB1"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#edgeB"/></animateMotion></circle>
+        <circle data-flow r="2.5" fill="#2EE6A8" id="pB2"><animateMotion dur="1.6s" begin="0.55s" repeatCount="indefinite"><mpath href="#edgeB"/></animateMotion></circle>
+
+        <text id="edgeA-label" class="svg-lbl" x="320" y="174" text-anchor="middle" font-size="9" fill="#2EE6A8">SYNCED</text>
+        <text id="edgeB-label" class="svg-lbl" x="670" y="174" text-anchor="middle" font-size="9" fill="#2EE6A8">SYNCED</text>
+        <text id="edgeA-sub" class="svg-mono" x="320" y="212" text-anchor="middle" font-size="9" fill="#5F7488">41ms · fill 0.00</text>
+        <text id="edgeB-sub" class="svg-mono" x="670" y="212" text-anchor="middle" font-size="9" fill="#5F7488">12ms · fill 0.00</text>
+
+        <!-- core engine -->
+        <circle cx="495" cy="190" r="98" fill="url(#coreGlow)"/>
+        <g transform="translate(392 138)">
+          <rect width="206" height="104" fill="#0E1926" stroke="#8B7CF6" stroke-opacity=".6"/>
+          <rect width="206" height="2" fill="#8B7CF6"/>
+          <text class="svg-lbl" x="103" y="30" text-anchor="middle" font-size="12" fill="#C7D7E5" letter-spacing="1.8">HEDGE ENGINE</text>
+          <text class="svg-mono" x="103" y="46" text-anchor="middle" font-size="9" fill="#8B7CF6">CORE · v2.4.1</text>
+          <line x1="14" y1="58" x2="192" y2="58" stroke="#17242F"/>
+          <text class="svg-lbl" x="14" y="76" font-size="9" fill="#5F7488">CPU</text>
+          <text class="svg-mono" id="core-cpu" x="94" y="76" text-anchor="end" font-size="10" fill="#C7D7E5">34%</text>
+          <text class="svg-lbl" x="112" y="76" font-size="9" fill="#5F7488">QUEUE</text>
+          <text class="svg-mono" id="core-queue" x="192" y="76" text-anchor="end" font-size="10" fill="#C7D7E5">3</text>
+          <text class="svg-lbl" x="14" y="93" font-size="9" fill="#5F7488">HEDGE RATIO</text>
+          <text class="svg-mono" id="core-ratio" x="192" y="93" text-anchor="end" font-size="10" fill="#2EE6A8">1 : 1.00</text>
+        </g>
+
+        <!-- broker A -->
+        <g transform="translate(40 128)">
+          <rect id="nodeA-box" width="208" height="124" fill="#0E1926" stroke="#2EE6A8" stroke-opacity=".45"/>
+          <rect id="nodeA-bar" width="2" height="124" fill="#2EE6A8"/>
+          <text class="svg-lbl" x="16" y="26" font-size="12" fill="#C7D7E5" letter-spacing="1.6">BROKER A</text>
+          <text class="svg-mono" x="16" y="41" font-size="9" fill="#5F7488">ECN / RETAIL · LDN4</text>
+          <line x1="12" y1="53" x2="196" y2="53" stroke="#17242F"/>
+          <text class="svg-lbl" x="16" y="70" font-size="9" fill="#5F7488">PING</text><text class="svg-mono" id="a-ping" x="192" y="70" text-anchor="end" font-size="10" fill="#C7D7E5">41 ms</text>
+          <text class="svg-lbl" x="16" y="85" font-size="9" fill="#5F7488">API</text><text class="svg-mono" id="a-api" x="192" y="85" text-anchor="end" font-size="10" fill="#2EE6A8">ONLINE</text>
+          <text class="svg-lbl" x="16" y="100" font-size="9" fill="#5F7488">FREE MARGIN</text><text class="svg-mono" id="a-margin" x="192" y="100" text-anchor="end" font-size="10" fill="#C7D7E5">68.4 %</text>
+          <text class="svg-lbl" x="16" y="115" font-size="9" fill="#5F7488">NET LOTS</text><text class="svg-mono" id="a-lots" x="192" y="115" text-anchor="end" font-size="10" fill="#38BDF8">0.00</text>
+        </g>
+
+        <!-- broker B -->
+        <g transform="translate(742 128)">
+          <rect id="nodeB-box" width="208" height="124" fill="#0E1926" stroke="#2EE6A8" stroke-opacity=".45"/>
+          <rect id="nodeB-bar" width="2" height="124" fill="#2EE6A8"/>
+          <text class="svg-lbl" x="16" y="26" font-size="12" fill="#C7D7E5" letter-spacing="1.6">BROKER B</text>
+          <text class="svg-mono" x="16" y="41" font-size="9" fill="#5F7488">INSTITUTIONAL / LP · NY4</text>
+          <line x1="12" y1="53" x2="196" y2="53" stroke="#17242F"/>
+          <text class="svg-lbl" x="16" y="70" font-size="9" fill="#5F7488">PING</text><text class="svg-mono" id="b-ping" x="192" y="70" text-anchor="end" font-size="10" fill="#C7D7E5">12 ms</text>
+          <text class="svg-lbl" x="16" y="85" font-size="9" fill="#5F7488">API</text><text class="svg-mono" id="b-api" x="192" y="85" text-anchor="end" font-size="10" fill="#2EE6A8">ONLINE</text>
+          <text class="svg-lbl" x="16" y="100" font-size="9" fill="#5F7488">FREE MARGIN</text><text class="svg-mono" id="b-margin" x="192" y="100" text-anchor="end" font-size="10" fill="#C7D7E5">81.2 %</text>
+          <text class="svg-lbl" x="16" y="115" font-size="9" fill="#5F7488">NET LOTS</text><text class="svg-mono" id="b-lots" x="192" y="115" text-anchor="end" font-size="10" fill="#8B7CF6">0.00</text>
+        </g>
+      </svg>
+      <div class="legend">
+        <span><i style="background:#2EE6A8"></i>synced</span>
+        <span><i style="background:#38BDF8"></i>rebalancing</span>
+        <span><i style="background:#F5A524"></i>drift</span>
+        <span><i style="background:#FF4D6D"></i>link down</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── NETWORK STREAM ──────────────────────────────────────── -->
+  <section class="panel g-stream">
+    <header><span class="tick"></span><h2>Network Stream</h2><span class="meta" id="stream-meta">LIVE</span></header>
+    <div class="filters">
+      <button data-filter="all" aria-pressed="true">Tutti</button>
+      <button data-filter="ok" aria-pressed="false">Hedge</button>
+      <button data-filter="warn" aria-pressed="false">Warn</button>
+      <button data-filter="crit" aria-pressed="false">Crit</button>
+      <span class="tail">tail -f hedge.net</span>
+    </div>
+    <ol class="log" id="log"></ol>
+  </section>
+
+  <!-- ── NETWORK METRICS ─────────────────────────────────────── -->
+  <div class="g-metrics">
+    <section class="panel">
+      <header><span class="tick stable" id="delta-tick"></span><h2>Global Net Delta</h2><span class="meta">LOT · AGGREGATO</span></header>
+      <div class="body pad">
+        <div class="hero">
+          <span class="val" id="delta-val" style="color:var(--stable)">+0.04<small>lot</small></span>
+          <span class="lbl" id="delta-state" style="color:var(--stable)">flat / hedged</span>
+        </div>
+        <svg id="delta-spark" viewBox="0 0 220 40" style="width:100%;margin-top:10px" aria-hidden="true"></svg>
+        <div class="expo"><span class="k">BRK-A</span><span class="track"><i></i><b id="expo-a" style="background:#38BDF8"></b></span><span class="v" id="expo-a-v">0.00</span></div>
+        <div class="expo"><span class="k">BRK-B</span><span class="track"><i></i><b id="expo-b" style="background:#8B7CF6"></b></span><span class="v" id="expo-b-v">0.00</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><span class="tick" id="lat-tick"></span><h2>Latency Matrix</h2><span class="meta">MS · ROLLING 60s</span></header>
+      <div class="body pad">
+        <div class="matrix" id="matrix">
+          <div></div><div class="head">Send → Ack</div><div class="head">Ack → Fill</div><div class="head">Roundtrip p95</div>
+          <div class="leg">LEG A · ECN</div><div class="cell" id="la0">41</div><div class="cell" id="la1">96</div><div class="cell" id="la2">188</div>
+          <div class="leg">LEG B · LP</div><div class="cell" id="lb0">12</div><div class="cell" id="lb1">28</div><div class="cell" id="lb2">61</div>
+        </div>
+        <div class="foot"><span>SLA 80 / 120 / 250 ms</span><span id="lat-state" style="color:var(--stable)">tutte le tratte entro SLA</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><span class="tick" id="slip-tick"></span><h2>Slippage Differential</h2><span class="meta">PIP · A − B</span></header>
+      <div class="body pad">
+        <div class="hero">
+          <span class="val" id="slip-val">+0.70<small>pip</small></span>
+          <span class="lbl">esecuzione migliore su <b id="slip-side" style="color:var(--core);font-weight:400">BRK-B</b></span>
+        </div>
+        <svg id="slip-spark" viewBox="0 0 220 40" style="width:100%;margin-top:10px" aria-hidden="true"></svg>
+        <div class="trio">
+          <div><span class="lbl">Media 1h</span><b id="slip-avg">+0.42</b></div>
+          <div><span class="lbl">Peggiore</span><b id="slip-max">+3.10</b></div>
+          <div><span class="lbl">Costo 1h</span><b id="slip-cost">−184 €</b></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── MASTER CONTROL PANEL ────────────────────────────────── -->
+  <section class="panel g-control">
+    <header><span class="tick stable" id="ctrl-tick"></span><h2>Master Control</h2><span class="meta">COMANDI GLOBALI DI RETE</span></header>
+    <div class="cmds">
+      <button class="cmd danger" id="btn-breaker">
+        <span class="fill" id="breaker-fill"></span>
+        <span class="t">Emergency Circuit Breaker</span>
+        <span class="h" id="breaker-hint">tieni premuto 1.2s per chiudere tutta la rete</span>
+      </button>
+      <button class="cmd flow" id="btn-sync">
+        <span class="t">Force Sync / Rebalance</span>
+        <span class="h" id="sync-hint">gap corrente 0.00 lot</span>
+      </button>
+      <button class="cmd core" id="btn-routing">
+        <span class="t">Toggle Routing Mode</span>
+        <span class="h">
+          <b id="rt-auto" style="font-weight:400;color:var(--stable)">AUTO</b>
+          <span class="switch" id="rt-switch"><b></b></span>
+          <b id="rt-manual" style="font-weight:400;color:var(--ink-mute)">MANUAL</b>
+        </span>
+      </button>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Feed di rete simulato — stessa interfaccia del client WebSocket
+   di produzione: uno stato, un tick, comandi via dispatch().
+   ═══════════════════════════════════════════════════════════════ */
+const SYMBOLS = ['EURUSD','GBPUSD','XAUUSD','USDJPY','NAS100'];
+const SLA = [80,120,250];
+const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[(Math.random()*a.length)|0];
+const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+const $=id=>document.getElementById(id);
+
+const S = {
+  routing:'AUTO', breaker:false, syncing:false, uptime:0, seq:4192,
+  core:{cpu:34,queue:3},
+  a:{ping:41,api:'ONLINE',margin:68.4,expo:0,fill:0},
+  b:{ping:12,api:'ONLINE',margin:81.2,expo:0,fill:0},
+  netDelta:0.04, slippage:0.7,
+  deltaHist:Array.from({length:48},()=>rnd(-.3,.3)),
+  slipHist:Array.from({length:48},()=>rnd(-1.4,1.9)),
+  lat:{a:[41,96,188],b:[12,28,61]},
+  events:[]
+};
+
+function log(sev,tag,msg,t){
+  S.events.unshift({id:++S.seq,t:t||new Date(),sev,tag,msg});
+  if(S.events.length>240) S.events.length=240;
+}
+
+/* seed: la dashboard non si apre mai vuota */
+(function seed(){
+  const now=Date.now();
+  const boot=[
+    ['ok','HEDGE','EURUSD BUY 1.40 @ BRK-A / SELL 1.40 @ BRK-B — coppia sincronizzata'],
+    ['warn','MISMATCH','XAUUSD fill A 0.80 lot / fill B 0.74 lot — gap 0.06 lot, rebalance in coda'],
+    ['ok','REBALANCE','Volumi riallineati — net delta 0.00 lot, hedge ratio 1:1'],
+    ['info','ROUTING','Sessione avviata — routing AUTO, 2 link attivi'],
+    ['ok','HEDGE','GBPUSD SELL 0.60 @ BRK-A / BUY 0.60 @ BRK-B — coppia sincronizzata'],
+    ['warn','LATENCY','Spike su BRK-A — ping 168ms oltre soglia 150ms, routing degradato'],
+    ['ok','API','BRK-B handshake completato — 128 simboli sottoscritti'],
+    ['ok','HEDGE','NAS100 BUY 0.30 @ BRK-A / SELL 0.30 @ BRK-B — coppia sincronizzata'],
+    ['info','MARGIN','BRK-A free margin 68.4% — sopra soglia di allerta (25%)'],
+    ['ok','HEDGE','USDJPY SELL 2.10 @ BRK-A / BUY 2.10 @ BRK-B — coppia sincronizzata'],
+  ];
+  boot.forEach((e,i)=>log(e[0],e[1],e[2],new Date(now-(boot.length-i)*4200)));
+})();
+
+function openHedge(){
+  const sym=pick(SYMBOLS), side=Math.random()>.5?'BUY':'SELL';
+  const lot=+rnd(.2,2.5).toFixed(2);
+  const mismatch=Math.random()<.22;
+  const fillB=mismatch?+(lot*rnd(.86,.97)).toFixed(2):lot;
+  S.a.expo=+(S.a.expo+(side==='BUY'?lot:-lot)).toFixed(2);
+  S.b.expo=+(S.b.expo-(side==='BUY'?fillB:-fillB)).toFixed(2);
+  S.a.fill=lot; S.b.fill=fillB;
+  if(mismatch) log('warn','MISMATCH',`${sym} fill A ${lot.toFixed(2)} lot / fill B ${fillB.toFixed(2)} lot — gap ${(lot-fillB).toFixed(2)} lot, rebalance in coda`);
+  else log('ok','HEDGE',`${sym} ${side} ${lot.toFixed(2)} @ BRK-A / ${side==='BUY'?'SELL':'BUY'} ${fillB.toFixed(2)} @ BRK-B — coppia sincronizzata`);
+}
+
+function tick(){
+  S.uptime+=250;
+  S.a.ping=clamp(S.a.ping+rnd(-5,5),18,240);
+  S.b.ping=clamp(S.b.ping+rnd(-2,2),6,90);
+  S.core.cpu=clamp(S.core.cpu+rnd(-3,3),12,92);
+  S.core.queue=Math.max(0,Math.round(S.core.queue+rnd(-1.2,1.2)));
+  S.lat.a=[Math.round(S.a.ping),Math.round(clamp(S.lat.a[1]+rnd(-6,6),55,420)),Math.round(clamp(S.lat.a[2]+rnd(-9,9),110,620))];
+  S.lat.b=[Math.round(S.b.ping),Math.round(clamp(S.lat.b[1]+rnd(-3,3),18,140)),Math.round(clamp(S.lat.b[2]+rnd(-4,4),40,190))];
+  S.a.margin=clamp(S.a.margin+rnd(-.35,.3),8,96);
+  S.b.margin=clamp(S.b.margin+rnd(-.2,.2),8,96);
+  S.slippage=clamp(S.slippage+rnd(-.35,.35),-3.2,3.6);
+  S.slipHist=[...S.slipHist.slice(1),S.slippage];
+  S.netDelta=+(S.a.expo+S.b.expo).toFixed(2);   // delta = somma algebrica delle due gambe
+  S.deltaHist=[...S.deltaHist.slice(1),S.netDelta];
+  // in AUTO il motore riallinea da solo appena il delta supera la tolleranza
+  if(!S.breaker && S.routing==='AUTO' && !S.syncing && Math.abs(S.netDelta)>0.5) dispatch('AUTO_SYNC');
+
+  if(!S.breaker && S.routing==='AUTO' && Math.random()<.16) openHedge();
+  if(S.a.ping>150 && Math.random()<.30) log('warn','LATENCY',`Spike su BRK-A — ping ${Math.round(S.a.ping)}ms oltre soglia 150ms, routing degradato`);
+  if(Math.abs(S.slippage)>2.6 && Math.random()<.22) log('warn','SLIPPAGE',`Differenziale A/B ${S.slippage.toFixed(2)} pip — sopra budget di esecuzione (2.50)`);
+  if(Math.random()<.012 && S.a.api==='ONLINE'){
+    S.a.api='DEGRADED';
+    log('crit','API','BRK-A heartbeat perso — 3 keepalive falliti, riconnessione in corso');
+    setTimeout(()=>{S.a.api='ONLINE';log('ok','API','BRK-A sessione ristabilita — ordini pendenti riconciliati');},2800);
+  }
+  render();
+}
+
+/* ── comandi ─────────────────────────────────────────────────── */
+function dispatch(type){
+  if(type==='CIRCUIT_BREAKER'){
+    S.breaker=true; S.routing='MANUAL'; S.a.expo=0; S.b.expo=0; S.netDelta=0;
+    log('crit','BREAKER','Circuit breaker armato — flat su tutta la rete, routing sospeso');
+  }
+  if(type==='RESET_BREAKER'){
+    S.breaker=false;
+    log('info','BREAKER','Circuit breaker rilasciato — rete in stato IDLE, routing manuale');
+  }
+  if(type==='FORCE_SYNC'||type==='AUTO_SYNC'){
+    const gap=+(S.a.expo+S.b.expo).toFixed(2);
+    S.syncing=true;
+    log('info','REBALANCE',`${type==='AUTO_SYNC'?'Auto-sync':'Force sync'} — delta di rete ${gap>0?'+':''}${gap} lot oltre tolleranza, riallineamento in corso`);
+    setTimeout(()=>{S.b.expo=+(-S.a.expo).toFixed(2);S.netDelta=0;S.syncing=false;
+      log('ok','REBALANCE','Volumi riallineati — net delta 0.00 lot, hedge ratio 1:1');render();},1400);
+  }
+  if(type==='TOGGLE_ROUTING'){
+    S.routing=S.routing==='AUTO'?'MANUAL':'AUTO';
+    log('info','ROUTING',`Routing mode → ${S.routing}`);
+  }
+  render();
+}
+
+/* ── rendering ───────────────────────────────────────────────── */
+const TONE={ok:'#2EE6A8',info:'#38BDF8',warn:'#F5A524',crit:'#FF4D6D'};
+const TAG={ok:'HEDGE-OK',info:'INFO',warn:'WARNING',crit:'CRITICAL'};
+
+function linkHealth(node){
+  if(S.breaker) return 'halted';
+  if(node.api!=='ONLINE') return 'crit';
+  if(S.syncing) return 'sync';
+  if(node.ping>150 || Math.abs(S.netDelta)>.45) return 'warn';
+  return 'ok';
+}
+const EDGE={ok:['#2EE6A8','SYNCED','1.6s'],sync:['#38BDF8','REBALANCING','0.7s'],
+  warn:['#F5A524','DRIFT','2.6s'],crit:['#FF4D6D','LINK DOWN','4s'],halted:['#3A4A5A','HALTED','0s']};
+
+function spark(el,data,color){
+  const w=220,h=40,max=Math.max(...data.map(Math.abs),.1);
+  const pt=(v,i)=>[(i/(data.length-1))*w,h/2-(v/max)*(h/2-3)];
+  const d=data.map((v,i)=>(i?'L':'M')+pt(v,i).map(n=>n.toFixed(1)).join(' ')).join('');
+  const last=pt(data[data.length-1],data.length-1);
+  el.innerHTML=`<line x1="0" y1="20" x2="220" y2="20" stroke="#17242F" stroke-width="1"/>
+    <path d="${d}L220 40 L0 40Z" fill="${color}" opacity=".08"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.5" fill="${color}" stroke="#0A121A" stroke-width="2"/>`;
+}
+
+let filter='all', held=false;
+const logEl=$('log');
+logEl.addEventListener('mouseenter',()=>held=true);
+logEl.addEventListener('mouseleave',()=>{held=false;renderLog();logEl.scrollTop=0;});
+document.querySelectorAll('.filters button').forEach(b=>b.addEventListener('click',()=>{
+  filter=b.dataset.filter;
+  document.querySelectorAll('.filters button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  lastSig=''; renderLog();
+}));
+
+let lastSig='';
+function renderLog(){
+  const sig=filter+'|'+(S.events[0]?S.events[0].id:0)+'|'+held;
+  $('stream-meta').textContent=`${S.events.length} EVENTI · ${held?'SCROLL IN PAUSA':'LIVE'}`;
+  // il feed si congela mentre l'operatore ci passa sopra: leggere un evento
+  // non deve essere una corsa contro lo scroll
+  if(sig===lastSig || (held && lastSig)) return;
+  lastSig=sig;
+  const rows=filter==='all'?S.events:S.events.filter(e=>e.sev===filter);
+  logEl.innerHTML=rows.slice(0,120).map(e=>{
+    const t=e.t, ts=[t.getHours(),t.getMinutes(),t.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':')
+      +'.'+String(t.getMilliseconds()).padStart(3,'0');
+    return `<li><span class="sev" style="background:${TONE[e.sev]}"></span><time>${ts}</time>
+      <span class="tag" style="color:${TONE[e.sev]}">[${e.tag}]</span><span class="msg">${e.msg}</span></li>`;
+  }).join('') || '<li style="justify-content:center;color:var(--ink-mute)">nessun evento con questo filtro</li>';
+  if(!held) logEl.scrollTop=0;
+}
+
+function render(){
+  const ha=linkHealth(S.a), hb=linkHealth(S.b);
+  const ea=EDGE[ha], eb=EDGE[hb];
+
+  // topologia
+  $('edgeA').setAttribute('stroke',ea[0]); $('edgeB').setAttribute('stroke',eb[0]);
+  $('edgeA').setAttribute('stroke-dasharray',ha==='halted'?'2 6':'0');
+  $('edgeB').setAttribute('stroke-dasharray',hb==='halted'?'2 6':'0');
+  ['pA1','pA2'].forEach(i=>{$(i).setAttribute('fill',ea[0]);$(i).style.opacity=S.breaker?0:1;
+    $(i).firstElementChild.setAttribute('dur',ea[2]==='0s'?'6s':ea[2]);});
+  ['pB1','pB2'].forEach(i=>{$(i).setAttribute('fill',eb[0]);$(i).style.opacity=S.breaker?0:1;
+    $(i).firstElementChild.setAttribute('dur',eb[2]==='0s'?'6s':eb[2]);});
+  $('edgeA-label').textContent=ea[1]; $('edgeA-label').setAttribute('fill',ea[0]);
+  $('edgeB-label').textContent=eb[1]; $('edgeB-label').setAttribute('fill',eb[0]);
+  $('edgeA-sub').textContent=`${S.lat.a[0]}ms · fill ${S.a.fill.toFixed(2)}`;
+  $('edgeB-sub').textContent=`${S.lat.b[0]}ms · fill ${S.b.fill.toFixed(2)}`;
+  $('nodeA-box').setAttribute('stroke',ea[0]); $('nodeA-bar').setAttribute('fill',ea[0]);
+  $('nodeB-box').setAttribute('stroke',eb[0]); $('nodeB-bar').setAttribute('fill',eb[0]);
+  $('a-ping').textContent=Math.round(S.a.ping)+' ms';
+  $('a-ping').setAttribute('fill',S.a.ping>150?'#F5A524':'#C7D7E5');
+  $('b-ping').textContent=Math.round(S.b.ping)+' ms';
+  $('a-api').textContent=S.a.api; $('a-api').setAttribute('fill',S.a.api==='ONLINE'?'#2EE6A8':'#FF4D6D');
+  $('b-api').textContent=S.b.api; $('b-api').setAttribute('fill',S.b.api==='ONLINE'?'#2EE6A8':'#FF4D6D');
+  $('a-margin').textContent=S.a.margin.toFixed(1)+' %';
+  $('a-margin').setAttribute('fill',S.a.margin<25?'#FF4D6D':'#C7D7E5');
+  $('b-margin').textContent=S.b.margin.toFixed(1)+' %';
+  $('a-lots').textContent=S.a.expo.toFixed(2); $('b-lots').textContent=S.b.expo.toFixed(2);
+  $('core-cpu').textContent=Math.round(S.core.cpu)+'%';
+  $('core-queue').textContent=S.core.queue;
+  const ratio=S.a.expo?Math.abs(S.b.expo/S.a.expo):1;
+  $('core-ratio').textContent='1 : '+ratio.toFixed(2);
+  $('core-ratio').setAttribute('fill',Math.abs(ratio-1)>.08?'#F5A524':'#2EE6A8');
+  $('topo-meta').textContent=`3 NODES · 2 LINKS · ${S.breaker?'HALTED':'ROUTING '+S.routing}`;
+
+  // status rail
+  const degraded=S.a.api!=='ONLINE'||S.b.api!=='ONLINE';
+  const railColor=S.breaker?'var(--critical)':degraded?'var(--warn)':'var(--stable)';
+  $('rail-dot').style.background=railColor;
+  $('rail-state').style.color=railColor;
+  $('rail-state').textContent=S.breaker?'network halted':degraded?'degraded link':'all systems nominal';
+  $('rail-routing').textContent=S.routing;
+  $('rail-routing').style.color=S.routing==='AUTO'?'var(--stable)':'var(--warn)';
+  $('rail-queue').textContent=S.core.queue;
+  const s=Math.floor(S.uptime/1000);
+  $('rail-uptime').textContent=[s/3600,(s%3600)/60,s%60].map(n=>String(Math.floor(n)).padStart(2,'0')).join(':');
+
+  // net delta
+  const flat=Math.abs(S.netDelta)<.05;
+  const dColor=flat?'var(--stable)':Math.abs(S.netDelta)>.45?'var(--critical)':'var(--warn)';
+  $('delta-val').innerHTML=`${S.netDelta>=0?'+':''}${S.netDelta.toFixed(2)}<small>lot</small>`;
+  $('delta-val').style.color=dColor;
+  $('delta-state').style.color=dColor;
+  $('delta-state').textContent=flat?'flat / hedged':'esposizione aperta';
+  $('delta-tick').className='tick '+(flat?'stable':'warn');
+  spark($('delta-spark'),S.deltaHist,flat?'#2EE6A8':'#F5A524');
+  const span=Math.max(Math.abs(S.a.expo),Math.abs(S.b.expo),1);
+  [['expo-a',S.a.expo],['expo-b',S.b.expo]].forEach(([id,v])=>{
+    const b=$(id); const width=(Math.abs(v)/span)*50;
+    b.style.width=width+'%'; b.style.left=(v>=0?50:50-width)+'%';
+  });
+  $('expo-a-v').textContent=S.a.expo.toFixed(2);
+  $('expo-b-v').textContent=S.b.expo.toFixed(2);
+
+  // latency matrix — heat monocroma; il colore di stato entra solo oltre SLA
+  let breaches=0;
+  ['a','b'].forEach(leg=>S.lat[leg].forEach((ms,i)=>{
+    const el=$('l'+leg+i), over=ms>SLA[i];
+    if(over) breaches++;
+    const k=Math.min(1,ms/(SLA[i]*1.6));
+    el.style.background=over?'rgba(245,165,36,.14)':`rgba(56,189,248,${(.05+k*.16).toFixed(3)})`;
+    el.style.color=over?'#F5A524':'#C7D7E5';
+    el.innerHTML=ms+(over?'<sup>SLA</sup>':'');
+  }));
+  $('lat-state').textContent=breaches?`${breaches} sforamenti attivi`:'tutte le tratte entro SLA';
+  $('lat-state').style.color=breaches?'var(--warn)':'var(--stable)';
+  $('lat-tick').className='tick '+(breaches?'warn':'');
+
+  // slippage
+  const over=Math.abs(S.slippage)>2.5;
+  $('slip-val').innerHTML=`${S.slippage>=0?'+':''}${S.slippage.toFixed(2)}<small>pip</small>`;
+  $('slip-val').style.color=over?'var(--warn)':'var(--ink)';
+  $('slip-side').textContent=S.slippage<0?'BRK-A':'BRK-B';
+  $('slip-side').style.color=S.slippage<0?'var(--flow)':'var(--core)';
+  $('slip-tick').className='tick '+(over?'warn':'');
+  spark($('slip-spark'),S.slipHist,over?'#F5A524':'#38BDF8');
+  const avg=S.slipHist.reduce((x,y)=>x+y,0)/S.slipHist.length;
+  const worst=S.slipHist.reduce((x,y)=>Math.abs(y)>Math.abs(x)?y:x,0);
+  $('slip-avg').textContent=(avg>=0?'+':'')+avg.toFixed(2);
+  $('slip-max').textContent=(worst>=0?'+':'')+worst.toFixed(2);
+  $('slip-cost').textContent='−'+Math.round(Math.abs(avg)*438)+' €';
+
+  // master control
+  $('ctrl-tick').className='tick '+(S.breaker?'critical':'stable');
+  $('breaker-hint').textContent=S.breaker
+    ? 'ARMATO — rete flat, routing sospeso. Tieni premuto per rilasciare'
+    : 'tieni premuto 1.2s per chiudere tutta la rete';
+  $('sync-hint').textContent=S.syncing?'riallineamento volumi in corso…'
+    :`gap corrente ${(S.a.expo+S.b.expo).toFixed(2)} lot`;
+  $('btn-sync').disabled=S.syncing;
+  $('rt-switch').className='switch'+(S.routing==='AUTO'?'':' manual');
+  $('rt-auto').style.color=S.routing==='AUTO'?'var(--stable)':'var(--ink-mute)';
+  $('rt-manual').style.color=S.routing==='AUTO'?'var(--ink-mute)':'var(--warn)';
+
+  renderLog();
+}
+
+/* ── hold-to-fire sul circuit breaker ────────────────────────── */
+(function(){
+  const btn=$('btn-breaker'), fill=$('breaker-fill');
+  let raf=0;
+  const stop=()=>{cancelAnimationFrame(raf);fill.style.width='0%';};
+  const start=()=>{
+    const t0=performance.now();
+    const step=t=>{
+      const p=Math.min(1,(t-t0)/1200);
+      fill.style.width=(p*100)+'%';
+      if(p<1) raf=requestAnimationFrame(step);
+      else {stop();dispatch(S.breaker?'RESET_BREAKER':'CIRCUIT_BREAKER');}
+    };
+    raf=requestAnimationFrame(step);
+  };
+  btn.addEventListener('pointerdown',start);
+  ['pointerup','pointerleave','pointercancel'].forEach(e=>btn.addEventListener(e,stop));
+  btn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();dispatch(S.breaker?'RESET_BREAKER':'CIRCUIT_BREAKER');}});
+})();
+$('btn-sync').addEventListener('click',()=>dispatch('FORCE_SYNC'));
+$('btn-routing').addEventListener('click',()=>dispatch('TOGGLE_ROUTING'));
+
+render();
+setInterval(tick,250);
+</script>
+</body>
+</html>
