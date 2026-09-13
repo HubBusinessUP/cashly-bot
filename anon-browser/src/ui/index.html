@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self';">
+<title>AnonBrowser</title>
+<style>
+  :root{
+    --bg:#101014; --bg2:#17171d; --line:#2a2a34;
+    --fg:#e6e6ec; --mut:#8a8a99; --ok:#3ddc97; --warn:#f5a623; --err:#ff4d6d; --acc:#7b5cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);
+    font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;user-select:none}
+  .bar{display:flex;align-items:center;gap:6px;padding:6px 8px}
+  button{background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:6px;
+    height:28px;min-width:28px;padding:0 9px;cursor:pointer;font-size:13px;line-height:1}
+  button:hover:not(:disabled){border-color:#3b3b47;background:#1e1e26}
+  button:disabled{opacity:.32;cursor:default}
+  button.on{border-color:var(--acc);color:#cfc4ff}
+  #url{flex:1;height:28px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;
+    color:var(--fg);padding:0 10px;font-size:13px;outline:none;user-select:text}
+  #url:focus{border-color:var(--acc)}
+  #panic{border-color:#4a1f2b;color:#ff8095}
+  #panic:hover{background:#2a1219}
+  .tabs{display:flex;align-items:stretch;gap:4px;padding:0 8px 6px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{display:flex;align-items:center;gap:8px;max-width:210px;min-width:110px;height:30px;
+    padding:0 6px 0 11px;background:var(--bg2);border:1px solid var(--line);border-radius:7px;
+    cursor:pointer;white-space:nowrap;color:var(--mut)}
+  .tab.active{background:#1f1f28;border-color:var(--acc);color:var(--fg)}
+  .tab span{overflow:hidden;text-overflow:ellipsis;flex:1}
+  .tab i{font-style:normal;opacity:.5;padding:0 3px;border-radius:4px}
+  .tab i:hover{opacity:1;background:#33333f}
+  #newtab{height:30px;min-width:30px;border-radius:7px}
+  .status{display:flex;align-items:center;gap:6px;padding:0 4px;white-space:nowrap;color:var(--mut);font-size:12px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 8px currentColor}
+  .dot.ready{background:var(--ok)} .dot.down,.dot.error{background:var(--err)}
+</style>
+</head>
+<body>
+  <div class="bar">
+    <button id="back" title="Indietro">‹</button>
+    <button id="fwd" title="Avanti">›</button>
+    <button id="reload" title="Ricarica">⟳</button>
+    <input id="url" spellcheck="false" autocomplete="off" placeholder="Cerca o inserisci un indirizzo">
+    <button id="ident" title="Nuovo circuito Tor + cancella sessione">Nuova identità</button>
+    <button id="js" class="on" title="Abilita/disabilita JavaScript">JS</button>
+    <button id="panic" title="Cancella tutto e chiudi">Panic</button>
+    <div class="status"><div class="dot" id="dot"></div><span id="tor">avvio…</span></div>
+  </div>
+  <div class="tabs" id="tabs"><button id="newtab" title="Nuova scheda">+</button></div>
+  <script src="ui.js"></script>
+</body>
+</html>

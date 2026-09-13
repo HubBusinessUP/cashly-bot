@@ -1,0 +1,23 @@
+{
+  "name": "anon-browser",
+  "version": "1.0.0",
+  "description": "Browser personale anonimo: tutto il traffico via Tor, kill-switch, sessione effimera, anti-fingerprinting.",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.local.anonbrowser",
+    "productName": "AnonBrowser",
+    "files": ["src/**/*", "package.json"],
+    "linux": { "target": ["AppImage"], "category": "Network" },
+    "mac": { "target": ["dmg"] },
+    "win": { "target": ["nsis"] }
+  }
+}
