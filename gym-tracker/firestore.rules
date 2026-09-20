@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidExercise(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.sets is number && data.sets >= 0 && data.sets <= 100
+        && data.reps is number && data.reps >= 0 && data.reps <= 1000
+        && data.weight is number && data.weight >= 0 && data.weight <= 2000
+        && data.date is string;
+    }
+
+    function isValidWorkout(data) {
+      return data.exerciseId is string
+        && data.date is string
+        && data.notes is string && data.notes.size() <= 500
+        && data.completed is bool;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.email is string;
+      allow update: if isOwner(userId);
+      allow delete: if false;
+
+      match /exercises/{exerciseId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidExercise(request.resource.data);
+        allow update: if isOwner(userId) && isValidExercise(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /workouts/{workoutId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWorkout(request.resource.data);
+        allow update: if isOwner(userId) && isValidWorkout(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

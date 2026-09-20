@@ -1,0 +1,15 @@
+{
+  "user": {
+    "email": "demo@gymtracker.app",
+    "goal": "build_muscle"
+  },
+  "exercises": [
+    { "name": "Barbell Back Squat", "libraryId": "squat", "sets": 4, "reps": 8, "weight": 80, "date": "2026-09-14", "notes": "Buona profondità, appoggi stabili.", "completed": true },
+    { "name": "Barbell Bench Press", "libraryId": "bench-press", "sets": 4, "reps": 6, "weight": 60, "date": "2026-09-14", "notes": "Ultima serie dura.", "completed": true },
+    { "name": "Conventional Deadlift", "libraryId": "deadlift", "sets": 3, "reps": 5, "weight": 100, "date": "2026-09-16", "notes": "Tecnica migliorata rispetto a settimana scorsa.", "completed": true },
+    { "name": "Pull-Up", "libraryId": "pull-up", "sets": 4, "reps": 10, "weight": 0, "date": "2026-09-16", "notes": "", "completed": true },
+    { "name": "Overhead Press", "libraryId": "overhead-press", "sets": 3, "reps": 8, "weight": 35, "date": "2026-09-18", "notes": "Spalla destra un po' tesa.", "completed": false },
+    { "name": "Walking Lunges", "libraryId": "lunges", "sets": 3, "reps": 12, "weight": 20, "date": "2026-09-18", "notes": "", "completed": true },
+    { "name": "Romanian Deadlift", "libraryId": "romanian-deadlift", "sets": 3, "reps": 10, "weight": 60, "date": "2026-09-20", "notes": "Focus su hamstring, ottime sensazioni.", "completed": true }
+  ]
+}
