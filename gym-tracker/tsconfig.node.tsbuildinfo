@@ -1,1 +1,0 @@
-{"root":["./vite.config.ts","./api/export-csv.ts","./api/weekly-summary.ts","./api/_lib/csv.ts","./api/_lib/firebaseAdmin.ts","./api/_lib/verifyAuth.ts","./scripts/seed.ts"],"version":"5.9.3"}
