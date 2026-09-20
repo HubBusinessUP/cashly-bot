@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { CATEGORIES, EXERCISE_LIBRARY } from '../data/exerciseLibrary'
+import { YouTubeEmbed } from '../components/YouTubeEmbed'
 
 export function LibraryPage() {
   const [search, setSearch] = useState('')
@@ -42,14 +43,7 @@ export function LibraryPage() {
               <p className="font-semibold">{ex.name}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400">{ex.category} · {ex.equipment}</p>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{ex.description}</p>
-              <a
-                href={ex.videoUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="mt-2 inline-block text-sm font-medium text-brand-600 hover:underline"
-              >
-                Guarda il video tutorial su YouTube
-              </a>
+              <YouTubeEmbed videoUrl={ex.videoUrl} title={ex.name} />
             </div>
           ))}
         </div>
