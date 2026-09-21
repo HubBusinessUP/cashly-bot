@@ -39,6 +39,9 @@ completion status. Logging a new exercise from the UI writes both documents atom
 9. Dark/light theme toggle, persisted in `localStorage`
 10. Body progress tracking: weight, height and an optional progress photo per check-in (Firebase
     Storage), with a weight-change summary since the first check-in
+11. Onboarding questionnaire (goal, training experience, health, body measurements, nutrition,
+    lifestyle, preferences) shown right after signup, with a "copy summary" action to hand the
+    answers to a coach for a personalized weekly workout + nutrition plan
 
 ### Edge cases handled
 

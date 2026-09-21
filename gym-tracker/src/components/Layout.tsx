@@ -8,6 +8,7 @@ const navItems = [
   { to: '/', label: 'Dashboard' },
   { to: '/library', label: 'Libreria esercizi' },
   { to: '/progress', label: 'Progressi fisici' },
+  { to: '/onboarding', label: 'Questionario' },
   { to: '/settings', label: 'Impostazioni' },
 ]
 

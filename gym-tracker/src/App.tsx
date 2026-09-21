@@ -8,6 +8,7 @@ import { SignupPage } from './pages/Signup'
 import { ForgotPasswordPage } from './pages/ForgotPassword'
 import { DashboardPage } from './pages/Dashboard'
 import { LibraryPage } from './pages/LibraryPage'
+import { OnboardingPage } from './pages/OnboardingPage'
 import { ProgressPage } from './pages/ProgressPage'
 import { SettingsPage } from './pages/SettingsPage'
 
@@ -35,6 +36,16 @@ export default function App() {
               <ProtectedRoute>
                 <Layout>
                   <LibraryPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <OnboardingPage />
                 </Layout>
               </ProtectedRoute>
             }

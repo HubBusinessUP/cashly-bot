@@ -7,6 +7,70 @@ export interface AppUser {
   createdAt: number
 }
 
+export type Sex = 'male' | 'female' | 'other'
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced'
+export type TrainingLocation = 'full_gym' | 'basic_gym' | 'home' | 'both'
+export type Budget = 'low' | 'medium' | 'high'
+export type JobType = 'sedentary' | 'standing' | 'physical'
+
+/**
+ * Onboarding intake questionnaire: everything a coach needs to design a weekly
+ * workout + nutrition plan. Filled once (editable later), stored on the user doc.
+ */
+export interface OnboardingData {
+  completedAt: number
+  // Dati generali
+  age: number | null
+  sex: Sex | null
+  heightCm: number | null
+  weightKg: number | null
+  targetWeightKg: number | null
+  // Obiettivo
+  primaryGoal: Goal | null
+  secondaryGoal: string
+  targetDate: string
+  pastFailureReason: string
+  // Allenamento
+  trainingMonths: number | null
+  level: ExperienceLevel | null
+  daysPerWeek: number | null
+  sessionMinutes: number | null
+  location: TrainingLocation | null
+  equipment: string
+  strongExercises: string
+  avoidExercises: string
+  // Salute
+  injuries: string
+  painMovements: string
+  conditions: string
+  medications: string
+  lastCheckup: string
+  // Misure corporee
+  waistCm: number | null
+  hipsCm: number | null
+  chestCm: number | null
+  armCm: number | null
+  bodyFatPercent: number | null
+  // Alimentazione
+  mealsPerDay: number | null
+  mealControl: string
+  foodExclusions: string
+  foodNonNegotiables: string
+  alcohol: string
+  supplements: string
+  budget: Budget | null
+  // Stile di vita
+  jobType: JobType | null
+  sleepHours: number | null
+  sleepQuality: number | null // 1-10
+  stressLevel: number | null // 1-10
+  dailyActivity: string
+  // Preferenze
+  trainingStyle: string
+  dislikedExercises: string
+  soloOrGroup: string
+}
+
 /** A single body-progress check-in: weight/height at a point in time, optionally with a progress photo. */
 export interface BodyMetric {
   id: string

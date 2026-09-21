@@ -35,7 +35,7 @@ export function SignupPage() {
     setLoading(true)
     try {
       await signUp(email, password, goal)
-      navigate('/')
+      navigate('/onboarding')
     } catch (err) {
       setError(mapAuthError(err))
     } finally {
