@@ -4,6 +4,10 @@ Personal gym workout tracker: log exercises, review a calendar of your sessions,
 stats, browse an exercise library with YouTube tutorials, export your history as CSV and get a
 weekly summary email.
 
+Picking this up in a new session? Read [`HANDOFF.md`](./HANDOFF.md) first (current state, known
+environment constraints, next steps) and [`ANTONIO-PLAN.md`](./ANTONIO-PLAN.md) for the real
+user's profile and workout plan already collected.
+
 ## Stack
 
 - **Frontend**: React + TypeScript (Vite), Tailwind CSS, React Router
