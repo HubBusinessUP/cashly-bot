@@ -7,6 +7,20 @@ export interface AppUser {
   createdAt: number
 }
 
+/** A single body-progress check-in: weight/height at a point in time, optionally with a progress photo. */
+export interface BodyMetric {
+  id: string
+  userId: string
+  date: string // yyyy-MM-dd
+  weightKg: number
+  heightCm: number | null
+  notes: string
+  photoUrl: string | null
+  photoPath: string | null // Storage path, needed to delete the file when the entry is deleted
+  createdAt: number
+  updatedAt: number
+}
+
 /** A logged performance entry: what the user actually lifted. */
 export interface ExerciseLog {
   id: string

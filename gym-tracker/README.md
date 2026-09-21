@@ -37,6 +37,8 @@ completion status. Logging a new exercise from the UI writes both documents atom
 7. CSV export, client-side (Dashboard/Settings) and server-side (`/api/export-csv`)
 8. Mobile-responsive layout (Tailwind)
 9. Dark/light theme toggle, persisted in `localStorage`
+10. Body progress tracking: weight, height and an optional progress photo per check-in (Firebase
+    Storage), with a weight-change summary since the first check-in
 
 ### Edge cases handled
 
@@ -57,6 +59,8 @@ completion status. Logging a new exercise from the UI writes both documents atom
   Firestore, stripping HTML/control characters to prevent stored XSS.
 - `firestore.rules` enforces that a user can only read/write documents under their own
   `users/{uid}` subtree, and validates field types/ranges on every write.
+- `storage.rules` restricts progress photos to `users/{uid}/progress-photos/**`, readable/writable
+  only by that user, and caps uploads at 8MB of JPEG/PNG/WebP.
 - Every `/api/*` mutation-adjacent endpoint verifies the caller's Firebase ID token
   (`api/_lib/verifyAuth.ts`) before touching data; the cron endpoint is protected by a shared
   `CRON_SECRET`.
@@ -67,9 +71,9 @@ completion status. Logging a new exercise from the UI writes both documents atom
 
 1. Create a project at [Firebase Console](https://console.firebase.google.com).
 2. Enable **Authentication -> Email/Password**.
-3. Create a **Firestore** database (production mode).
-4. Deploy the security rules in this repo: `firebase deploy --only firestore:rules` (requires the
-   [Firebase CLI](https://firebase.google.com/docs/cli) and `firebase use <project-id>`).
+3. Create a **Firestore** database (production mode) and enable **Storage** (for progress photos).
+4. Deploy the security rules in this repo: `firebase deploy --only firestore:rules,storage` (requires
+   the [Firebase CLI](https://firebase.google.com/docs/cli) and `firebase use <project-id>`).
 5. Grab your Web app config (Project settings -> General -> Your apps) for the `VITE_FIREBASE_*`
    vars, and a service account key (Project settings -> Service accounts -> Generate new private
    key) for the `FIREBASE_ADMIN_*` vars.

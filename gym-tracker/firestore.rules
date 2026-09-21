@@ -26,6 +26,13 @@ service cloud.firestore {
         && data.completed is bool;
     }
 
+    function isValidBodyMetric(data) {
+      return data.date is string
+        && data.weightKg is number && data.weightKg >= 0 && data.weightKg <= 400
+        && (data.heightCm == null || (data.heightCm is number && data.heightCm >= 0 && data.heightCm <= 300))
+        && data.notes is string && data.notes.size() <= 500;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.email is string;
@@ -43,6 +50,13 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidWorkout(request.resource.data);
         allow update: if isOwner(userId) && isValidWorkout(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /bodyMetrics/{metricId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidBodyMetric(request.resource.data);
+        allow update: if isOwner(userId) && isValidBodyMetric(request.resource.data);
         allow delete: if isOwner(userId);
       }
     }

@@ -7,6 +7,7 @@ import { ThemeToggle } from './ThemeToggle'
 const navItems = [
   { to: '/', label: 'Dashboard' },
   { to: '/library', label: 'Libreria esercizi' },
+  { to: '/progress', label: 'Progressi fisici' },
   { to: '/settings', label: 'Impostazioni' },
 ]
 
