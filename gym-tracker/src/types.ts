@@ -40,6 +40,7 @@ export interface ExerciseLibraryItem {
   equipment: string
   videoUrl: string
   description: string
+  imageUrl?: string
 }
 
 export interface ExerciseFormValues {

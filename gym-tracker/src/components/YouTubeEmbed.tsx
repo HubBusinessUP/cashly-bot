@@ -12,9 +12,10 @@ export function YouTubeEmbed({ videoUrl, title }: YouTubeEmbedProps) {
   const videoId = extractYouTubeId(videoUrl)
 
   if (!videoId) {
+    const isSearchLink = videoUrl.includes('/results?')
     return (
       <a href={videoUrl} target="_blank" rel="noreferrer noopener" className="text-sm font-medium text-brand-600 hover:underline">
-        Guarda il video tutorial su YouTube
+        {isSearchLink ? 'Cerca il tutorial su YouTube' : 'Guarda il video tutorial su YouTube'}
       </a>
     )
   }

@@ -32,7 +32,7 @@ completion status. Logging a new exercise from the UI writes both documents atom
 2. Exercise logging form with sets/reps/weight inputs and validation (react-hook-form + zod)
 3. Daily workout calendar with click-to-edit
 4. Progress stats: average reps, max weight, total volume, streak — update live as data changes
-5. Exercise library with search/filter, each exercise links to a YouTube tutorial
+5. Exercise library with search/filter (876 exercises from the [free-exercise-db](https://github.com/yuhonas/free-exercise-db) public dataset, plus 20 hand-picked ones with a real embedded YouTube tutorial — every other exercise links to a YouTube search for its tutorial, since the dataset has no curated video id)
 6. Weekly summary email (Vercel Cron -> `/api/weekly-summary`)
 7. CSV export, client-side (Dashboard/Settings) and server-side (`/api/export-csv`)
 8. Mobile-responsive layout (Tailwind)
@@ -127,7 +127,8 @@ gym-tracker/
   src/
     components/    UI components (calendar, forms, modal, stats)
     context/        Auth + theme React context
-    data/           Static exercise library (with YouTube links)
+    data/           Exercise library: 20 curated entries + exerciseLibrary.generated.ts (876 from
+                    free-exercise-db, regenerate via scripts/build-exercise-library.py)
     hooks/          Firestore data hooks (exercises, workouts, stats, profile)
     lib/            Firebase client init, CSV builder, sanitization, validation schema
     pages/          Route-level pages

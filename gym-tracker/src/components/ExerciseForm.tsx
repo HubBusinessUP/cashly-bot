@@ -3,6 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { exerciseFormSchema, type ExerciseFormSchema } from '../lib/schema'
 import { EXERCISE_LIBRARY } from '../data/exerciseLibrary'
 
+const SORTED_LIBRARY = [...EXERCISE_LIBRARY].sort((a, b) => a.name.localeCompare(b.name))
+
 interface ExerciseFormProps {
   defaultValues?: Partial<ExerciseFormSchema>
   submitLabel?: string
@@ -51,7 +53,7 @@ export function ExerciseForm({ defaultValues, submitLabel = 'Salva', onSubmit, o
         </label>
         <select id="libraryId" className="input" {...register('libraryId')}>
           <option value="">Nessuno — esercizio personalizzato</option>
-          {EXERCISE_LIBRARY.map((ex) => (
+          {SORTED_LIBRARY.map((ex) => (
             <option key={ex.id} value={ex.id}>
               {ex.name} ({ex.category})
             </option>
