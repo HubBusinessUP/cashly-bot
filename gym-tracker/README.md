@@ -42,6 +42,20 @@ completion status. Logging a new exercise from the UI writes both documents atom
 11. Onboarding questionnaire (goal, training experience, health, body measurements, nutrition,
     lifestyle, preferences) shown right after signup, with a "copy summary" action to hand the
     answers to a coach for a personalized weekly workout + nutrition plan
+12. Installable as a PWA: once deployed, Android/desktop Chrome offers "Install app" (adds a real
+    home-screen icon, opens standalone, works offline for already-visited pages) — no native app
+    store or APK build needed
+
+### Installing on your phone (PWA, not an APK)
+
+This app has no native Android/iOS build — building a real `.apk` needs the Android SDK
+(`dl.google.com`), which this project's dev environment cannot reach. Instead it's a installable
+PWA, which on Android behaves like an app (home-screen icon, standalone window, offline caching)
+without an app store:
+
+1. Deploy it (see **Deploying to Vercel** below) so it's served over HTTPS.
+2. Open the deployed URL in Chrome on your phone.
+3. Tap the menu (⋮) → **Install app** (or the install icon in the address bar).
 
 ### Edge cases handled
 
